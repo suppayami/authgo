@@ -5,10 +5,17 @@ import (
 	"net/http"
 )
 
-type localStrategy struct {
-	lookup func(r *http.Request) (*LocalCredentials, error)
-	verify func(credentials LocalCredentials) error
+// LocalStrategy authenticates user with username and password from form data.
+type LocalStrategy struct {
+	lookup LocalLookupFunc
+	verify LocalVerifyFunc
 }
+
+// LocalLookupFunc looks for local credentials
+type LocalLookupFunc func(r *http.Request) (*LocalCredentials, error)
+
+// LocalVerifyFunc verifies local credentials
+type LocalVerifyFunc func(credentials LocalCredentials) error
 
 // LocalCredentials contains login credentials for localStrategy.
 type LocalCredentials struct {
@@ -35,7 +42,7 @@ func localLookup(r *http.Request) (*LocalCredentials, error) {
 }
 
 // Authenticate implementation, first lookup for the credentials then verify them.
-func (s *localStrategy) Authenticate(r *http.Request) error {
+func (s *LocalStrategy) Authenticate(r *http.Request) error {
 	credentials, err := s.lookup(r)
 	if err != nil {
 		return err
@@ -50,8 +57,6 @@ func (s *localStrategy) Authenticate(r *http.Request) error {
 // NewLocalStrategy creates a new localStrategy with given lookup and verify
 // function, with lookup is optional (which can be nil).
 //
-// localStrategy authenticates user with username and password from form data.
-//
 // The constructor will assign default lookup function to look for
 // credentials from form data and JSON data from request if no custom lookup is
 // given. A verify function is required to check if given credentials is valid
@@ -59,14 +64,14 @@ func (s *localStrategy) Authenticate(r *http.Request) error {
 //
 // Credentials are taken from "username" and "password" field in body.
 func NewLocalStrategy(
-	lookup func(r *http.Request) (*LocalCredentials, error),
-	verify func(credentials LocalCredentials) error,
-) (Strategy, error) {
+	lookup LocalLookupFunc,
+	verify LocalVerifyFunc,
+) (*LocalStrategy, error) {
 	if lookup == nil {
 		lookup = localLookup
 	}
 	if verify == nil {
 		return nil, errors.New("verify function is required by localStrategy")
 	}
-	return &localStrategy{lookup, verify}, nil
+	return &LocalStrategy{lookup, verify}, nil
 }
