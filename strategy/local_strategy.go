@@ -23,6 +23,19 @@ type LocalCredentials struct {
 	Password string `json:"password"`
 }
 
+// Authenticate implementation, first lookup for the credentials then verify them.
+func (s *LocalStrategy) Authenticate(r *http.Request) error {
+	credentials, err := s.lookup(r)
+	if err != nil {
+		return err
+	}
+	err = s.verify(*credentials)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func localLookup(r *http.Request) (*LocalCredentials, error) {
 	err := r.ParseForm()
 	if err != nil {
@@ -35,23 +48,10 @@ func localLookup(r *http.Request) (*LocalCredentials, error) {
 		r.FormValue("password"),
 	}
 	if credentials.Username == "" || credentials.Password == "" {
-		return nil, errors.New("Credentials are missing")
+		return nil, ErrCredentialsNotFound
 	}
 
 	return credentials, nil
-}
-
-// Authenticate implementation, first lookup for the credentials then verify them.
-func (s *LocalStrategy) Authenticate(r *http.Request) error {
-	credentials, err := s.lookup(r)
-	if err != nil {
-		return err
-	}
-	err = s.verify(*credentials)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 // NewLocalStrategy creates a new localStrategy with given lookup and verify
