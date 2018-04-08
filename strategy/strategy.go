@@ -1,3 +1,4 @@
+// Package strategy contains various authentication strategies for authgo.
 package strategy
 
 import (

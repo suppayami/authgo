@@ -1,3 +1,4 @@
+// Package authgo provides authentication middlewares for Golang handlers.
 package authgo
 
 import (
