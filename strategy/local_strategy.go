@@ -38,6 +38,8 @@ func (s *LocalStrategy) Authenticate(r *http.Request) error {
 
 // MakeLocalLookupForm creates a LocalLookupFunc which looks for credentials
 // from form values.
+//
+// Content-Type: application/x-www-form-urlencoded
 func MakeLocalLookupForm(usernameField, passwordField string) LocalLookupFunc {
 	return func(r *http.Request) (*LocalCredentials, error) {
 		err := r.ParseForm()
@@ -62,11 +64,12 @@ func MakeLocalLookupForm(usernameField, passwordField string) LocalLookupFunc {
 // function, with lookup is optional (which can be nil).
 //
 // The constructor will assign default lookup function to look for
-// credentials from form data and JSON data from request if no custom lookup is
+// credentials from form data and JSON data from request with
+// Content-Type: application/x-www-form-urlencoded if no custom lookup is
 // given. A verify function is required to check if given credentials is valid
 // and authenticatable.
 //
-// Credentials are taken from "username" and "password" field in body by default.
+// Credentials are taken from "username" and "password" fields in body by default.
 func NewLocalStrategy(
 	lookup LocalLookupFunc,
 	verify LocalVerifyFunc,
