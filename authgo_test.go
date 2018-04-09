@@ -6,6 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/suppayami/authgo/strategy"
+
 	"github.com/suppayami/authgo"
 )
 
@@ -33,9 +35,10 @@ func (s *fakeStrategy) MakeSuccess(flag bool) {
 
 func init() {
 	stubStrategy = &fakeStrategy{false}
-	middleware = authgo.MakeMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusUnauthorized)
-	}), stubStrategy)
+	middleware = authgo.MakeMiddleware(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusUnauthorized)
+		}), stubStrategy)
 	req, _ = http.NewRequest("POST", "/login", nil)
 	handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -60,6 +63,42 @@ func TestAuthMiddlewareFailed(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 	handler := middleware(handler)
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusUnauthorized {
+		t.Errorf("Expected: %v; got: %v", http.StatusUnauthorized, status)
+	}
+}
+
+func TestAuthMiddlewareComposedSuccess(t *testing.T) {
+	stubStrategy.MakeSuccess(false)
+	secondStrategy := &fakeStrategy{true}
+
+	rr := httptest.NewRecorder()
+	composedMiddleware := authgo.MakeComposedMiddleware(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusUnauthorized)
+		}), []strategy.Strategy{stubStrategy, secondStrategy})
+	handler := composedMiddleware(handler)
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("Expected: %v; got: %v", http.StatusOK, status)
+	}
+}
+
+func TestAuthMiddlewareComposedFailed(t *testing.T) {
+	stubStrategy.MakeSuccess(false)
+	secondStrategy := &fakeStrategy{false}
+
+	rr := httptest.NewRecorder()
+	composedMiddleware := authgo.MakeComposedMiddleware(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusUnauthorized)
+		}), []strategy.Strategy{stubStrategy, secondStrategy})
+	handler := composedMiddleware(handler)
 
 	handler.ServeHTTP(rr, req)
 
